@@ -1,0 +1,69 @@
+---
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: Updates Repository index (Centos)
+    dnf:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "CentOS"
+
+  - name: Updates Repository index (Ubuntu)
+    apt:
+      upgrade: dist
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "Ubuntu"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: Installation of Docker (Ubuntu)
+    apt:
+      name: docker.io
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Installation of Docker (CentOS)
+    shell: 'curl -fsSL https://get.docker.com/ | sh'
+    when: ansible_distribution == "CentOS"
+
+  - name: Installation of Docker sdk (Ubuntu)
+    apt:
+      name: python3-docker
+      update_cache: yes
+      cache_valid_time: 3600
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Docker Permission (Ubuntu)
+    shell: 'sudo usermod -aG docker $USER'
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Installation of Docker sdk (CentOS)
+    yum:
+      name: python-docker-py
+      update_cache: yes
+    when: ansible_distribution == "CentOS"
+
+  - name: Docker Permission (CentOS)
+    shell: 'sudo usermod -aG docker $(whoami)'
+    when: ansible_distribution == "CentOS"
+
+  - name: Enabling and Starting of Docker
+    service:
+      name: docker
+      state: started
+
+  - name: Copy of Docker File
+    copy: src=dockerfile dest=/tmp/path/
+
+  - name: BUilding of Docker
+    docker_image:
+      name: containeransible
+      build:
+        path: /tmp/path/
+        args:
+          listen_port: 8080
+      source: build
